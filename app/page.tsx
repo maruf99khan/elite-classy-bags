@@ -3,6 +3,7 @@ import { HomeHero } from "@/components/home-hero";
 import { RevealSection } from "@/components/reveal-section";
 import { StaggerGrid } from "@/components/stagger-grid";
 import { ProductCard } from "@/components/product-card";
+import { BAG_IMAGES } from "@/lib/bagImages";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -36,8 +37,8 @@ export default async function Home() {
         <RevealSection className="mx-auto grid max-w-6xl items-center gap-10 px-6 py-20 sm:grid-cols-2">
           <div className="relative aspect-[4/3] w-full overflow-hidden rounded-3xl bg-border sm:order-2">
             <Image
-              src="https://picsum.photos/seed/leather-workshop/1000/750"
-              alt="Leather being worked on in a small workshop"
+              src={BAG_IMAGES.leatherMacro}
+              alt="Macro detail of hand-finished leather stitching and edge work"
               fill
               sizes="(min-width: 640px) 50vw, 100vw"
               className="object-cover"

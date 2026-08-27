@@ -4,6 +4,9 @@ import { ShopGrid } from "@/components/shop-grid";
 import { ShopFilters } from "@/components/shop-filters";
 import { getCategories, getProducts, type ProductSort } from "@/lib/products";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export const metadata: Metadata = {
   title: "Shop — Elite Classy Bags",
   description: "Browse totes, crossbodies, clutches, and backpacks.",

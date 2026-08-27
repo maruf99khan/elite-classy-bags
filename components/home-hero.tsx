@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { motion } from "motion/react";
 import { animate, stagger, text } from "animejs";
+import { BAG_IMAGES } from "@/lib/bagImages";
 
 export function HomeHero() {
   const headingRef = useRef<HTMLHeadingElement>(null);
@@ -73,8 +74,8 @@ export function HomeHero() {
           className="relative aspect-square w-full overflow-hidden rounded-3xl bg-border"
         >
           <Image
-            src="https://picsum.photos/seed/hero-bags/1200/1200"
-            alt="An Elite Classy Bags leather tote resting on a table"
+            src={BAG_IMAGES.heroTote}
+            alt="An Elite Classy Bags tote carried by a customer"
             fill
             priority
             sizes="(min-width: 640px) 50vw, 100vw"

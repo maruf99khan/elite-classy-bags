@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import type { Json } from "@/lib/supabase/database.types";
+import { sanitizeBagImage } from "@/lib/bagImages";
 
 export interface ProductSpecs {
   dimensions: string;
@@ -67,7 +68,8 @@ interface ProductRow {
 
 function mapRow(row: ProductRow): Product {
   const images = [...row.product_images].sort((a, b) => a.position - b.position);
-  const image = images[0]?.url ?? "";
+  const image = sanitizeBagImage(images[0]?.url ?? "");
+  const secondary = sanitizeBagImage(images[1]?.url ?? image);
   return {
     id: row.id,
     slug: row.slug,
@@ -76,7 +78,7 @@ function mapRow(row: ProductRow): Product {
     categorySlug: row.category?.slug ?? "",
     price: row.price_cents / 100,
     image,
-    secondaryImage: images[1]?.url ?? image,
+    secondaryImage: secondary,
     description: row.description ?? "",
     specs: row.specs as unknown as ProductSpecs,
     stockQuantity: row.stock_quantity,

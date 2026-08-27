@@ -1,5 +1,6 @@
 import Image from "next/image";
 import type { Metadata } from "next";
+import { BAG_IMAGES } from "@/lib/bagImages";
 
 export const metadata: Metadata = {
   title: "About — Elite Classy Bags",
@@ -20,8 +21,8 @@ export default function AboutPage() {
 
       <div className="relative mt-10 aspect-[16/9] w-full overflow-hidden rounded-3xl bg-border">
         <Image
-          src="https://picsum.photos/seed/about-studio/1400/788"
-          alt="A small leather goods studio workbench"
+          src={BAG_IMAGES.classicStreet}
+          alt="An Elite Classy Bags tote in everyday use"
           fill
           sizes="(min-width: 640px) 800px, 100vw"
           className="object-cover"

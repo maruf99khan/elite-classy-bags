@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { motion } from "motion/react";
 import type { Product } from "@/lib/products";
+import { sanitizeBagImage } from "@/lib/bagImages";
 import { formatCurrency } from "@/lib/currency";
 
 export function ProductCard({ product }: { product: Product }) {
@@ -20,9 +21,9 @@ export function ProductCard({ product }: { product: Product }) {
         href={`/shop/${product.slug}`}
         className="group flex flex-col overflow-hidden rounded-2xl border border-border bg-card transition-colors hover:border-accent"
       >
-        <div className="relative aspect-square w-full overflow-hidden bg-border">
+        <div className="relative aspect-[4/5] w-full overflow-hidden bg-border">
           <Image
-            src={product.image}
+            src={sanitizeBagImage(product.image)}
             alt={product.name}
             fill
             sizes="(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw"
