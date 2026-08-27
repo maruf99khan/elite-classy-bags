@@ -6,7 +6,7 @@ shipped). This plan turns that static demo into a real, production e-commerce
 business: persistent data, real accounts, real payments, and store operations.
 
 Stack: Next.js 16 (App Router) + React 19 + TypeScript + Tailwind v4 (existing),
-Supabase (Postgres + Auth + Storage), Stripe (payments).
+Supabase (Postgres + Auth + Storage), manual bKash (payments).
 
 ## Guiding decisions (locked in during brainstorming)
 
@@ -16,8 +16,10 @@ Supabase (Postgres + Auth + Storage), Stripe (payments).
   secure. A `profiles` row auto-creates on first login via a Postgres trigger.
 - **Cart**: stays client-side (localStorage), unchanged from today. Not synced to
   a DB table — guest→login cart merging isn't worth solving at this catalog size.
-- **Checkout/payments**: Stripe Checkout Sessions, in Stripe test mode for v1.
-  Switching to live mode later is an API-key change, not a code change.
+- **Checkout/payments**: manual bKash. Customer sends money via bKash "Send
+  Money" to the store's number, then submits the sender number + Transaction ID
+  at checkout. No merchant account, API keys, or approval process needed — an
+  admin verifies the TrxID and marks the order paid from `/admin/orders`.
 - **Admin access**: no self-serve admin signup. The first admin (store owner) gets
   `profiles.role = 'admin'` set directly in Supabase after their first Google
   login; after that, additional admins are promoted from within `/admin/customers`.
@@ -37,7 +39,7 @@ Supabase (Postgres + Auth + Storage), Stripe (payments).
 | `product_images` | `id`, `product_id`, `url`, `alt`, `position` | Ordered gallery; supports today's primary+secondary image pattern and more |
 | `reviews` | `id`, `product_id`, `user_id`, `rating` (1–5), `title`, `body`, `created_at` | Unique on `(product_id, user_id)` — one review per customer per product |
 | `wishlists` | `user_id`, `product_id`, `created_at` | Composite PK |
-| `orders` | `id`, `user_id` (nullable), `order_number`, `email`, `shipping_address` (jsonb), `subtotal_cents`, `status`, `stripe_session_id`, `created_at` | `status`: `pending` → `paid` → `shipped` → `delivered`, or `cancelled`/`refunded` |
+| `orders` | `id`, `user_id` (nullable), `order_number`, `email`, `shipping_address` (jsonb), `subtotal_cents`, `status`, `payment_method`, `bkash_sender_number`, `bkash_trx_id`, `admin_note`, `created_at` | `status`: `pending` → `paid` → `shipped` → `delivered`, or `cancelled`/`refunded` |
 | `order_items` | `id`, `order_id`, `product_id`, `name_snapshot`, `price_cents_snapshot`, `quantity` | Snapshots protect order history if a product is later edited/deleted |
 
 **RLS**: `products`/`categories`/`reviews` are public-read. `orders`, `wishlists`,
@@ -65,7 +67,7 @@ gated by a `is_admin()` Postgres function checking `profiles.role`.
 | `/shop` | Catalog: search (`?q=`), category filter, price range, sort, page-based pagination (24/page) | Public |
 | `/shop/[slug]` | Product detail: gallery, specs, reviews + review form, wishlist heart, related products, live stock | Public (review/wishlist actions prompt login) |
 | `/cart` | Cart (unchanged from today) | Public |
-| `/checkout` | Checkout form → creates `orders`/`order_items` → redirects to Stripe Checkout | Public (guest or logged-in) |
+| `/checkout` | Checkout form + bKash instructions → creates `orders`/`order_items` (status `pending`) | Public (guest or logged-in) |
 | `/account` | Profile summary, links to orders/wishlist | Logged-in |
 | `/account/orders` | Order history list | Logged-in |
 | `/account/orders/[id]` | Single order detail/status | Logged-in, own orders only |
@@ -81,22 +83,28 @@ gated by a `is_admin()` Postgres function checking `profiles.role`.
 | `/admin/customers` | List customers, view their order history, promote to admin | Admin only |
 | `/admin/reviews` | List all reviews, delete inappropriate ones | Admin only |
 
-## Checkout & payment flow (Stripe, test mode)
+## Checkout & payment flow (manual bKash)
 
-1. Customer submits the checkout form.
-2. Server Action creates an `orders` row (`status: 'pending'`) + `order_items`,
-   then creates a Stripe Checkout Session for the cart total and redirects there.
-3. Stripe collects payment (test-mode card numbers — no real charge in v1).
-4. A Stripe webhook (`checkout.session.completed`) flips the order to
-   `status: 'paid'` server-side. This webhook, not the browser redirect back,
-   is the source of truth for payment success.
-5. Customer lands on the existing order-confirmation UI, now showing the real
-   order number and live status.
-6. `shipped`/`delivered`/`cancelled`/`refunded` are set manually by an admin in
-   `/admin/orders` — there's no real carrier integration in v1.
+1. Checkout page shows the store's bKash number and asks the customer to send
+   the order total via bKash "Send Money", then enter their bKash number and
+   the Transaction ID (TrxID) from the confirmation SMS.
+2. On submit, a Server Action creates an `orders` row (`status: 'pending'`,
+   `payment_method: 'bkash'`, `bkash_sender_number`, `bkash_trx_id`) +
+   `order_items`, using the service-role client (bypasses RLS — a trusted
+   server boundary, same pattern as any other admin-side write).
+3. Customer lands on the order-confirmation UI showing the order number and
+   "payment pending verification."
+4. In `/admin/orders`, an admin checks the TrxID against their bKash
+   app/statement and clicks "Mark as Paid" (→ `status: 'paid'`, and this is
+   also when `stock_quantity` is decremented — not at order creation, so a
+   fake or mistyped TrxID can't lock inventory) or "Reject" (→ `status:
+   'cancelled'`, with a required `admin_note`).
+5. `shipped`/`delivered` are set manually by an admin afterward — there's no
+   real carrier integration in v1.
 
-Switching Stripe from test to live mode later is a key/webhook-endpoint swap,
-not a code change.
+No payment gateway, API keys, or webhook — the store owner is the source of
+truth for payment success. A gateway integration (bKash PGW, Stripe, etc.) is
+a v2/v3 option if order volume ever justifies the merchant approval process.
 
 ## V1 — build now
 
@@ -104,8 +112,8 @@ not a code change.
 - Catalog rebuilt on the DB: search, category/price filter, sort, pagination
 - Product detail: reviews + review form, wishlist, related products, live stock
 - Cart: unchanged
-- Checkout: Stripe test-mode integration, real order + order-item persistence,
-  webhook-driven status
+- Checkout: manual bKash flow, real order + order-item persistence,
+  admin-verified status
 - Account area: profile, order history + detail, wishlist
 - Admin panel: dashboard, products (+ image upload), categories, orders,
   customers, review moderation
@@ -114,6 +122,8 @@ not a code change.
 
 ## V2 — next (explicitly deferred)
 
+- Automated payment verification (bKash PGW or another gateway API), if manual
+  TrxID checking becomes a bottleneck
 - Coupon/discount codes
 - Sales analytics dashboard (revenue over time, top products)
 - Admin-editable FAQ/shipping content (move from hardcoded to DB-backed)
