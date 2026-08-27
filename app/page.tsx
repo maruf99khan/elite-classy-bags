@@ -1,7 +1,5 @@
 import { getFeaturedProducts } from "@/lib/products";
 import { HomeHero } from "@/components/home-hero";
-import { RevealSection } from "@/components/reveal-section";
-import { StaggerGrid } from "@/components/stagger-grid";
 import { ProductCard } from "@/components/product-card";
 import { BAG_IMAGES } from "@/lib/bagImages";
 import Image from "next/image";
@@ -26,15 +24,15 @@ export default async function Home() {
             View all →
           </Link>
         </div>
-        <StaggerGrid className="mt-8 grid grid-cols-2 gap-5 sm:grid-cols-4">
+        <div className="mt-8 grid grid-cols-2 gap-5 sm:grid-cols-4">
           {featured.map((product) => (
             <ProductCard key={product.slug} product={product} />
           ))}
-        </StaggerGrid>
+        </div>
       </section>
 
       <section className="border-t border-border bg-card">
-        <RevealSection className="mx-auto grid max-w-6xl items-center gap-10 px-6 py-20 sm:grid-cols-2">
+        <div className="mx-auto grid max-w-6xl items-center gap-10 px-6 py-20 sm:grid-cols-2">
           <div className="relative aspect-[4/3] w-full overflow-hidden rounded-3xl bg-border sm:order-2">
             <Image
               src={BAG_IMAGES.leatherMacro}
@@ -60,7 +58,7 @@ export default async function Home() {
               Our story →
             </Link>
           </div>
-        </RevealSection>
+        </div>
       </section>
     </div>
   );

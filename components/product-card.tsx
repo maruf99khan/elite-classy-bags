@@ -9,14 +9,7 @@ import { formatCurrency } from "@/lib/currency";
 
 export function ProductCard({ product }: { product: Product }) {
   return (
-    <motion.div
-      variants={{
-        hidden: { opacity: 0, y: 16 },
-        visible: { opacity: 1, y: 0 },
-      }}
-      whileHover={{ y: -4 }}
-      transition={{ duration: 0.3, ease: "easeOut" }}
-    >
+    <motion.div whileHover={{ y: -4 }} transition={{ duration: 0.3, ease: "easeOut" }}>
       <Link
         href={`/shop/${product.slug}`}
         className="group flex flex-col overflow-hidden rounded-2xl border border-border bg-card transition-colors hover:border-accent"

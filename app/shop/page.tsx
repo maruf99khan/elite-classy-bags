@@ -43,7 +43,6 @@ export default async function ShopPage({
   ]);
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
-  const gridKey = `${category ?? "all"}-${sort ?? "featured"}-${q ?? ""}-${page}`;
 
   return (
     <div className="mx-auto w-full max-w-6xl px-6 py-14">
@@ -63,7 +62,7 @@ export default async function ShopPage({
       />
 
       <div className="mt-8">
-        <ShopGrid products={products} gridKey={gridKey} />
+        <ShopGrid products={products} />
       </div>
 
       {totalPages > 1 && (
