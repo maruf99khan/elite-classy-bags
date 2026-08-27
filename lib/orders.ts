@@ -36,11 +36,43 @@ export async function createOrder({
 }: CreateOrderInput): Promise<CreateOrderResult> {
   if (items.length === 0) throw new Error("Cannot place an order with an empty cart");
 
-  const subtotalCents = Math.round(
-    items.reduce((sum, item) => sum + item.price * item.quantity, 0) * 100,
+  const admin = createAdminClient();
+
+  // Cart data comes from the client (localStorage) and is never trusted for
+  // price/name/quantity — re-look-up each product server-side so a tampered
+  // cart can't forge prices or abuse stock decrement with a negative quantity.
+  const productIds = [...new Set(items.map((item) => item.id))].filter(Boolean);
+  const { data: products, error: productsError } = await admin
+    .from("products")
+    .select("id, name, price_cents")
+    .in("id", productIds);
+  if (productsError) throw productsError;
+
+  const productById = new Map((products ?? []).map((p) => [p.id, p]));
+
+  const validatedItems = items
+    .map((item) => {
+      const product = productById.get(item.id);
+      const quantity = Math.floor(item.quantity);
+      if (!product || !Number.isFinite(quantity) || quantity <= 0) return null;
+      return {
+        productId: product.id,
+        name: product.name,
+        priceCents: product.price_cents,
+        quantity,
+      };
+    })
+    .filter((item): item is NonNullable<typeof item> => item !== null);
+
+  if (validatedItems.length === 0) {
+    throw new Error("Cannot place an order with an empty cart");
+  }
+
+  const subtotalCents = validatedItems.reduce(
+    (sum, item) => sum + item.priceCents * item.quantity,
+    0,
   );
   const orderNumber = generateOrderNumber();
-  const admin = createAdminClient();
 
   const { data: order, error: orderError } = await admin
     .from("orders")
@@ -61,11 +93,11 @@ export async function createOrder({
   if (orderError) throw orderError;
 
   const { error: itemsError } = await admin.from("order_items").insert(
-    items.map((item) => ({
+    validatedItems.map((item) => ({
       order_id: order.id,
-      product_id: null,
+      product_id: item.productId,
       name_snapshot: item.name,
-      price_cents_snapshot: Math.round(item.price * 100),
+      price_cents_snapshot: item.priceCents,
       quantity: item.quantity,
     })),
   );

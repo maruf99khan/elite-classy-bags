@@ -4,6 +4,7 @@ import { useMemo, useSyncExternalStore } from "react";
 import type { Product } from "@/lib/products";
 
 export interface CartItem {
+  id: string;
   slug: string;
   name: string;
   price: number;
@@ -77,6 +78,7 @@ function addItem(product: Product, quantity = 1) {
   commit([
     ...current,
     {
+      id: product.id,
       slug: product.slug,
       name: product.name,
       price: product.price,

@@ -5,12 +5,6 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       { protocol: "https", hostname: "res.cloudinary.com" },
       { protocol: "https", hostname: "images.unsplash.com" },
-      // legacy random-image host — keep allowed to prevent crash on old DB rows / localStorage
-      { protocol: "https", hostname: "loremflickr.com" },
-      { protocol: "https", hostname: "picsum.photos" },
-      { protocol: "https", hostname: "via.placeholder.com" },
-      // permissive fallback — any https host (sanitized to bagImages in code, but prevents build crash)
-      { protocol: "https", hostname: "**" },
     ],
   },
   async headers() {
